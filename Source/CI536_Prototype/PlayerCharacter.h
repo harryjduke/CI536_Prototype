@@ -13,8 +13,6 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogPlayerCharacter, Log, All);
-
 UCLASS(config=Game)
 class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 {
@@ -29,12 +27,21 @@ class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 	UCameraComponent* FollowCamera;
 
 	/** How much the view is offset from the eye position */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Crouch, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Crouch, meta = (AllowPrivateAccess = "true"))
 	FVector CrouchEyeOffset;
 
-	/** How quickly CrouchEyeOffset will return to zero */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Crouch, meta = (AllowPrivateAccess = "true"))
+	/** How fast the view will move when crouching in m/s */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Crouch, meta = (AllowPrivateAccess = "true"))
 	float CrouchSpeed;
+
+private:
+	/** The speed at which the character will be walking */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float WalkSpeed;
+
+	/** The speed at which the character will be sprinting*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float SprintSpeed;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -48,6 +55,10 @@ class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CrouchAction;
 
+	/** Sprint Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SprintAction;
+
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
@@ -55,10 +66,6 @@ class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
-	
-	/** Sprint Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* SprintAction;
 
 	
 	
@@ -73,10 +80,16 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	/** Called for starting sprinting input */
+	/**
+	 * Called for starting sprinting input
+	 * Set the MaxWalkSpeed of the movement component to the SprintSpeed
+	 */
 	void StartSprinting ();
 
-	/** Called for stopping sprinting input*/
+	/**
+	 * Called for stopping sprinting input
+	 * Set the MaxWalkSpeed of the movement component to the WalkSpeed
+	 */
 	void StopSprinting();
 	
 	// Called to bind functionality to input
@@ -118,3 +131,7 @@ public:
 	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
 
 };
+
+DECLARE_LOG_CATEGORY_EXTERN(LogPlayerCharacter, Log, All)
+
+;
