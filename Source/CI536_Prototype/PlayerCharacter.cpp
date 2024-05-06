@@ -1,5 +1,3 @@
-
-
 #include "PlayerCharacter.h"
 
 #include "EnhancedInputComponent.h"
@@ -58,11 +56,16 @@ APlayerCharacter::APlayerCharacter()
 	CrouchEyeOffset = FVector(0.f);
 	CrouchSpeed = 12.f;
 
+	// Configure Health
+	MaxHealth = 100;
+	Health = MaxHealth;
+	HealCooldown = 7;
+	HealRate = 10;
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-// Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
 {
 	// Call the base class  
@@ -78,73 +81,28 @@ void APlayerCharacter::BeginPlay()
 	}
 }
 
-void APlayerCharacter::Tick(const float DeltaTime)
+void APlayerCharacter::Tick(const float DeltaSeconds)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(DeltaSeconds);
 
-	//Wind CrouchEyeOffset down to zero
-	const float CrouchInterpTime = FMath::Min(1.f, CrouchSpeed * DeltaTime);
-	CrouchEyeOffset = (1.f - CrouchInterpTime) * CrouchEyeOffset;
+	WindDownCrouchEyeOffset(DeltaSeconds);
+
+	HealIfReady(DeltaSeconds);
 }
-
-// Set CrouchEyeOffset to initially negate the crouch effect (through CalcCamera)
-void APlayerCharacter::OnStartCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
-{
-	if(HalfHeightAdjust == 0.f) // Filter if there is no change in the height from the crouch
-	{
-		return;
-	}
-
-	const float StartBaseEyeHeight = BaseEyeHeight;
-	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	/* Calculate the difference in eye height (above the collision center) and add the change in height of the
-	 collision center to calculate how much the camera view would have to be offset by to negate change in camera
-	 position caused by the crouch */
-	CrouchEyeOffset.Z += StartBaseEyeHeight - BaseEyeHeight + HalfHeightAdjust;
-	if (FollowCamera)
-	{
-		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight), false);
-	}
-}
-
-void APlayerCharacter::OnEndCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
-{
-	if(HalfHeightAdjust == 0.f) // Check the character
-	{
-		return;
-	}
-
-	const float StartBaseEyeHeight = BaseEyeHeight;
-	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	/* Calculate the difference in eye height (above the collision center) and add the change in height of the
-	 collision center to calculate how much the camera view would have to be offset by to negate change in camera
-	 position caused by the uncrouch */
-	CrouchEyeOffset.Z += StartBaseEyeHeight - BaseEyeHeight - HalfHeightAdjust;
-	if (FollowCamera)
-	{
-		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight), false);
-	}
-}
-
-// Offset the camera view by the CrouchEyeOffset to control the crouching transition
-void APlayerCharacter::CalcCamera(const float DeltaTime, FMinimalViewInfo& OutResult)
-{
-	if (FollowCamera)
-	{
-		FollowCamera->GetCameraView(DeltaTime, OutResult);
-		OutResult.Location += CrouchEyeOffset;
-	}
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-// Called to bind functionality to input
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+		
+		// Moving
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
+
+		// Looking
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 		
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
@@ -158,12 +116,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprinting);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprinting);
 		
-
-		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
-
-		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	}
 	else
 	{
@@ -171,18 +123,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
-void APlayerCharacter::StartCrouch()
-{
-	if (GetCharacterMovement()->IsMovingOnGround())
-	{
-		Crouch();
-	}
-}
+//////////////////////////////////////////////////////////////////////////
+// Movement
+
+//Moving
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	const FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -202,6 +151,8 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
+// Looking
+
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -215,6 +166,75 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+// Crouching
+
+void APlayerCharacter::StartCrouch()
+{
+	if (GetCharacterMovement()->IsMovingOnGround())
+	{
+		Crouch();
+	}
+}
+
+FVector APlayerCharacter::WindDownCrouchEyeOffset(float DeltaSeconds)
+{
+	const float CrouchInterpTime = FMath::Min(1.f, CrouchSpeed * DeltaSeconds);
+	return CrouchEyeOffset = (1.f - CrouchInterpTime) * CrouchEyeOffset;
+}
+
+void APlayerCharacter::OnStartCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
+{
+	if(HalfHeightAdjust == 0.f) // Filter if there is no change in the height from the crouch
+	{
+		return;
+	}
+
+	const float StartBaseEyeHeight = BaseEyeHeight;
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	
+	/* Calculate the difference in eye height (above the collision center) and add the change in height of the
+	 collision center to calculate how much the camera view would have to be offset by to negate change in camera
+	 position caused by the crouch */
+	CrouchEyeOffset.Z += StartBaseEyeHeight - BaseEyeHeight + HalfHeightAdjust;
+	if (FollowCamera)
+	{
+		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight), false);
+	}
+}
+
+void APlayerCharacter::OnEndCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
+{
+	if(HalfHeightAdjust == 0.f) // Check the character actually crouches any distance
+	{
+		return;
+	}
+
+	const float StartBaseEyeHeight = BaseEyeHeight;
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	
+	/* Calculate the difference in eye height (above the collision center) and add the change in height of the
+	 collision center to calculate how much the camera view would have to be offset by to negate change in camera
+	 position caused by the uncrouch */
+	CrouchEyeOffset.Z += StartBaseEyeHeight - BaseEyeHeight - HalfHeightAdjust;
+	if (FollowCamera)
+	{
+		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight), false);
+	}
+}
+
+// Sprinting
+
+void APlayerCharacter::CalcCamera(const float DeltaTime, FMinimalViewInfo& OutResult)
+{
+	Super::CalcCamera(DeltaTime, OutResult);
+	if (FollowCamera)
+	{
+		FollowCamera->GetCameraView(DeltaTime, OutResult);
+		OutResult.Location += CrouchEyeOffset;
+	}
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst because const functions are not compatible with BindAction
 void APlayerCharacter::StartSprinting()
 {
 	if (GetCharacterMovement())
@@ -223,10 +243,44 @@ void APlayerCharacter::StartSprinting()
 	}
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst because const functions are not compatible with BindAction
 void APlayerCharacter::StopSprinting()
 {
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Health
+
+float APlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
+                                   AActor* DamageCauser)
+{
+	LastDamagedTime = GetWorld()->GetTimeSeconds();
+	
+	if (Health - DamageAmount <= 0)
+	{
+		Health = 0;
+		Die();
+		return Health;
+	}
+
+	return Health -= DamageAmount;
+}
+
+void APlayerCharacter::Die()
+{
+	this->Destroy();
+}
+
+
+float APlayerCharacter::HealIfReady(const float DeltaSeconds)
+{
+	if (GetWorld()->GetTimeSeconds() - LastDamagedTime > HealCooldown)
+	{
+		return Health = std::min(Health + HealRate * DeltaSeconds, MaxHealth);
+	}
+	return 0;
 }
