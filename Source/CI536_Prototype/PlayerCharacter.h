@@ -15,6 +15,10 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPlayerCharacter, Log, All);
 
+/**
+ * The character class for the player which extends ACharacter and implements jumping, crouching, sprinting, health,
+ * healing, taking damage and dying.
+ */
 UCLASS(config=Game)
 class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 {
