@@ -15,6 +15,10 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPlayerCharacter, Log, All);
 
+/**
+ * The character class for the player which extends ACharacter and implements jumping, crouching, sprinting, health,
+ * healing, taking damage and dying.
+ */
 UCLASS(config=Game)
 class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 {
@@ -98,14 +102,59 @@ class CI536_PROTOTYPE_API APlayerCharacter : public ACharacter
 	float LastDamagedTime;
 
 public:
-	// Sets default values for this character's properties
+	
 	APlayerCharacter();
-
-protected:
 	
 	virtual void BeginPlay() override;
 	
 	virtual void Tick(float DeltaSeconds) override;
+
+	// COMPONENTS
+	
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	
+	/** Returns FollowCamera subobject **/
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	// MOVEMENT
+	
+	/**
+	 * Implementation of OnStartCrouch for PlayerCharacter.
+	 * Set CrouchEyeOffset to initially negate the crouch camera offset effect (through CalcCamera).
+	 */
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+	/**
+	 * Implementation of OnEndCrouch for PlayerCharacter.
+	 * Set CrouchEyeOffset to initially negate the crouch camera offset effect (through CalcCamera).
+	 */
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+	/**
+	 * Implementation of CalcCamera for PlayerCharacter
+	 * Offset the camera view by CrouchEyeOffset to control the crouching transition
+	 * @see AActor::CalcCamera
+	 * @param	DeltaTime	Delta time seconds since last update
+	 * @param	OutResult	Camera configuration
+	 */
+	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
+
+	// HEALTH
+	
+	/**
+	 * Deal damage to the character and kill them if health 0
+	 * @see https://www.unrealengine.com/blog/damage-in-ue4
+	 * @param DamageAmount		How much damage to apply
+	 * @param DamageEvent		Data package that fully describes the damage received.
+	 * @param EventInstigator	The Controller responsible for the damage.
+	 * @param DamageCauser		The Actor that directly caused the damage (e.g. the projectile that exploded, the rock that landed on you)
+	 * @return					The amount of damage actually applied.
+	 */
+	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
+							 AActor* DamageCauser) override;
+
+protected:
 
 	// INPUT
 	
@@ -163,50 +212,4 @@ protected:
 	*	@return The value of health after this frame
 	*/
 	float HealIfReady(float DeltaSeconds);
-
-public:	
-	// COMPONENTS
-	
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	// MOVEMENT
-	
-	/**
-	 * Implementation of OnStartCrouch for PlayerCharacter.
-	 * Set CrouchEyeOffset to initially negate the crouch camera offset effect (through CalcCamera).
-	 */
-	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
-
-	/**
-	 * Implementation of OnEndCrouch for PlayerCharacter.
-	 * Set CrouchEyeOffset to initially negate the crouch camera offset effect (through CalcCamera).
-	 */
-	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
-
-	/**
-	 * Implementation of CalcCamera for PlayerCharacter
-	 * Offset the camera view by CrouchEyeOffset to control the crouching transition
-	 * @see AActor::CalcCamera
-	 * @param	DeltaTime	Delta time seconds since last update
-	 * @param	OutResult	Camera configuration
-	 */
-	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
-
-	// HEALTH
-	
-	/**
-	 * Deal damage to the character and kill them if health 0
-	 * @see https://www.unrealengine.com/blog/damage-in-ue4
-	 * @param DamageAmount		How much damage to apply
-	 * @param DamageEvent		Data package that fully describes the damage received.
-	 * @param EventInstigator	The Controller responsible for the damage.
-	 * @param DamageCauser		The Actor that directly caused the damage (e.g. the projectile that exploded, the rock that landed on you)
-	 * @return					The amount of damage actually applied.
-	 */
-	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
-	                         AActor* DamageCauser) override;
 };

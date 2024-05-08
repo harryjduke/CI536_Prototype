@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerCharacter);
@@ -264,15 +265,28 @@ float APlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEvent&
 	{
 		Health = 0;
 		Die();
-		return Health;
+		return 0;
 	}
 
-	return Health -= DamageAmount;
+	return  DamageAmount;
 }
 
 void APlayerCharacter::Die()
 {
-	this->Destroy();
+	//Get a reference to the Pawn Controller.
+	AController* PlayerController = GetController();
+
+	//Destroy the Player.   
+	Destroy();
+
+	//Get the World and GameMode in the world to invoke its restart player function.
+	if (const UWorld* World = GetWorld())
+	{
+		if (AGameModeBase* GameMode = World->GetAuthGameMode())
+		{
+			GameMode->RestartPlayer(PlayerController);
+		}
+	}
 }
 
 
