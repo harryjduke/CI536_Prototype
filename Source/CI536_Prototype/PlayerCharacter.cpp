@@ -177,7 +177,7 @@ void APlayerCharacter::StartCrouch()
 	}
 }
 
-FVector APlayerCharacter::WindDownCrouchEyeOffset(float DeltaSeconds)
+FVector APlayerCharacter::WindDownCrouchEyeOffset(const float DeltaSeconds)
 {
 	const float CrouchInterpTime = FMath::Min(1.f, CrouchSpeed * DeltaSeconds);
 	return CrouchEyeOffset = (1.f - CrouchInterpTime) * CrouchEyeOffset;
@@ -267,6 +267,8 @@ float APlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEvent&
 		Die();
 		return 0;
 	}
+
+	Health -= DamageAmount;
 
 	return  DamageAmount;
 }
