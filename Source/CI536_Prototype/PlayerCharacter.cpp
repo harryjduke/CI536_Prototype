@@ -1,5 +1,6 @@
-#include "PlayerCharacter.h"
+// Copyright (c) 2024 Harry Duke
 
+#include "PlayerCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
