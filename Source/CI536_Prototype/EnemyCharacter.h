@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PatrolPath.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "GameFramework/Character.h"
 #include "EnemyCharacter.generated.h"
@@ -17,10 +18,15 @@ public:
 	/** Returns the behaviour tree for this character */
 	FORCEINLINE UBehaviorTree* GetBehaviourTree() const { return BehaviorTree; }
 
+	/** Returns the patrol path for this character */
+	FORCEINLINE APatrolPath* GetPatrolPath() const { return PatrolPath; }
+
 private:
 	
 	/** The behavior tree for this enemy */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	UBehaviorTree* BehaviorTree;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	APatrolPath* PatrolPath;
 };

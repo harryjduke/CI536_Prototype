@@ -9,6 +9,7 @@
 
 /**
  * BTService that, while active, checks if the player is currently being sensed
+ * @deprecated Use EQS instead
  */
 UCLASS()
 class CI536_PROTOTYPE_API UBTService_UpdatePlayerIsSensed : public UBTService
@@ -17,11 +18,14 @@ class CI536_PROTOTYPE_API UBTService_UpdatePlayerIsSensed : public UBTService
 
 	UBTService_UpdatePlayerIsSensed();
 
+public:
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
+
 protected:
 	
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
+	
 	/**
 	 * Bound to the OnPerceptionUpdated delegate of the AIController
 	 * Finds the player from the updated actors (if present) and updates the blackboard
@@ -40,7 +44,7 @@ protected:
 private:
 
 	/**
-	 * Bool
+	 * Bool Output
 	 * The key that stores whether the player is currently being sensed
 	 */ 
 	UPROPERTY(EditAnywhere, Category = Blackboard)
@@ -51,5 +55,5 @@ private:
 	 * Updated whenever this node becomes relevant
 	 */
 	UPROPERTY()
-	UBehaviorTreeComponent* CachedOwnerBehaviorTreeComponent;
+	UBehaviorTreeComponent* CachedOwnerBehaviorTreeComponent = nullptr;
 };

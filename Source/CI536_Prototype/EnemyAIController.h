@@ -7,21 +7,24 @@
 #include "EnemyAIController.generated.h"
 
 /**
- * 
+ * The AIController class for enemies, creates the blackboard, starts the behavior tree and configures the sight sense
  */
 UCLASS()
 class CI536_PROTOTYPE_API AEnemyAIController : public AAIController
 {
 	GENERATED_BODY()
 
-public:
-	explicit AEnemyAIController(FObjectInitializer const& ObjectInitializer);
+	AEnemyAIController();
 
 protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
 private:
+	
+	/**
+	 * Used to configure the sight sense
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = Perception)
 	class UAISenseConfig_Sight* SightConfig;
 };

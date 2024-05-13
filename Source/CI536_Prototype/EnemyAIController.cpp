@@ -5,7 +5,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
-AEnemyAIController::AEnemyAIController(FObjectInitializer const& ObjectInitializer)
+AEnemyAIController::AEnemyAIController()
 {
 	// Setup perception system
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(FName("Sight Config"));

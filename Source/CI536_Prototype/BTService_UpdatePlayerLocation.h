@@ -8,13 +8,17 @@
 
 /**
  * BTService that, while active, updates the given key to be the sensed player location
+ * @deprecated use EQS instead
  */
 UCLASS()
 class CI536_PROTOTYPE_API UBTService_UpdatePlayerLocation : public UBTService
 {
 	GENERATED_BODY()
 
+public:
 	UBTService_UpdatePlayerLocation();
+	
+	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
 protected:
 	
@@ -23,9 +27,9 @@ protected:
 private:
 	
 	/**
-	* Vector
-	* The key that stores the last sensed location of the player
-	*/
+	 * Vector Output
+	 * The key that stores the last sensed location of the player
+	 */
 	UPROPERTY(EditAnywhere, Category = Blackboard)
 	FBlackboardKeySelector PlayerLocation;
 };

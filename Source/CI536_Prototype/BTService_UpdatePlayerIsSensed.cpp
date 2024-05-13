@@ -10,8 +10,6 @@
 
 UBTService_UpdatePlayerIsSensed::UBTService_UpdatePlayerIsSensed()
 {
-	CachedOwnerBehaviorTreeComponent = nullptr;
-
 	//Ensure that the keys assigned to this service are of the correct type
 	PlayerSensed.AddBoolFilter(this, PlayerSensed.SelectedKeyName);
 
@@ -19,7 +17,19 @@ UBTService_UpdatePlayerIsSensed::UBTService_UpdatePlayerIsSensed()
 	bNotifyBecomeRelevant = true;
 	bNotifyCeaseRelevant = true;
 
+	//Each node will be a unique instance, this allows class variables to used to store persistent data
+	bCreateNodeInstance = true;
 	
+}
+
+void UBTService_UpdatePlayerIsSensed::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (const UBlackboardData* BBAsset = GetBlackboardAsset(); ensure(BBAsset))
+	{
+		PlayerSensed.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 void UBTService_UpdatePlayerIsSensed::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -52,11 +62,11 @@ void UBTService_UpdatePlayerIsSensed::OnCeaseRelevant(UBehaviorTreeComponent& Ow
 // ReSharper disable once CppMemberFunctionMayBeConst because const functions cannot be bound to delegates
 void UBTService_UpdatePlayerIsSensed::HandlePerceptionUpdate(const TArray<AActor*>& UpdatedActors)
 {
-	APlayerCharacter** PlayerCharacter = nullptr;
-	UpdatedActors.FindItemByClass<APlayerCharacter>(PlayerCharacter);
+	APlayerCharacter* PlayerCharacter = nullptr;
+	UpdatedActors.FindItemByClass<APlayerCharacter>(&PlayerCharacter);
 	if (PlayerCharacter)
 	{
-		UpdateBlackboard(*PlayerCharacter);
+		UpdateBlackboard(PlayerCharacter);
 	}
 }
 
