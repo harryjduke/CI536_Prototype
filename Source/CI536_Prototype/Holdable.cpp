@@ -54,17 +54,3 @@ void AHoldable::Transfer(UHolderComponent* HolderComponent)
 	AttachToComponent(Cast<USceneComponent>(HolderComponent), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
-// Called when the game starts or when spawned
-void AHoldable::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void AHoldable::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
