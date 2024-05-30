@@ -3,11 +3,13 @@
 #include "PlayerCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Holdable.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerCharacter);
 
@@ -52,11 +54,15 @@ APlayerCharacter::APlayerCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
+	
 	// Configure crouching
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	CrouchEyeOffset = FVector(0.f);
 	CrouchSpeed = 12.f;
+
+	// Interaction
+	InteractRange = 100.f;
+	InteractTolerance = 50.f;
 
 	// Configure Health
 	MaxHealth = 100;
@@ -117,7 +123,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		//Sprinting
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::StartSprinting);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopSprinting);
-		
+
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacter::Interact);
 	}
 	else
 	{
@@ -251,6 +259,80 @@ void APlayerCharacter::StopSprinting()
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Interaction
+
+void APlayerCharacter::Interact()
+{
+	if(UHolderComponent* HolderComponent = FindComponentByClass<UHolderComponent>())
+	{
+		// Sphere trace to find objects to interact with
+		FVector Start = GetCameraBoom()->GetComponentLocation();
+		FVector End = Start + GetFollowCamera()->GetComponentRotation().Vector() * InteractRange;
+
+		TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
+		TraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+
+		TArray<AActor*> ActorsToIgnore;
+		ActorsToIgnore.Add(this);
+		
+		TArray<FHitResult> HitResults;
+		UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, End, InteractTolerance,
+				TraceObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForDuration, HitResults, true);
+		
+		// Get all HolderComponents and Holdables in the sphere trace
+		TArray<UHolderComponent*> OtherHolderComponents;
+		TArray<AHoldable*> Holdables;
+		for(FHitResult HitResult : HitResults)
+		{
+			if(UHolderComponent* OtherHolderComponent = Cast<UHolderComponent>(
+				HitResult.GetActor()->GetComponentByClass(UHolderComponent::StaticClass())))
+			{
+				OtherHolderComponents.Add(OtherHolderComponent);
+				continue;
+			}
+			if(AHoldable* Holdable = Cast<AHoldable>(HitResult.GetActor()))
+			{
+				Holdables.Add(Holdable);
+			}
+		}
+
+		// Try transferring to and from the holder components
+		for(UHolderComponent* OtherHolderComponent : OtherHolderComponents)
+		{
+			if(HolderComponent->GetHeldHoldable() == nullptr)
+			{
+				if (OtherHolderComponent->TransferHeldHoldable(HolderComponent, false, true)) // Transfer to this from other holder
+				{
+					return;
+				}
+			}
+			else
+			{
+				if(HolderComponent->TransferHeldHoldable(OtherHolderComponent, true, false)) // Transfer to other holder from this
+				{
+					return;
+				}
+			}
+		}
+		// Try picking up any holdables if one is not currently held
+		if (HolderComponent->GetHeldHoldable() == nullptr)
+		{
+			for(AHoldable* Holdable : Holdables)
+			{
+				if(HolderComponent->HoldHoldable(Holdable))
+				{
+					return;
+				}
+			}
+		}
+		else // Else drop the held holdable
+		{
+			HolderComponent->DropHeldHoldable();
+		}
 	}
 }
 

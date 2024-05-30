@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "HolderComponent.h"
 #include "InputActionValue.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacter.generated.h"
@@ -62,7 +63,7 @@ public:
 	 * @param	OutResult	Camera configuration
 	 */
 	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
-
+	
 	// HEALTH
 	
 	/**
@@ -137,7 +138,7 @@ protected:
 	 * Called for starting sprinting input
 	 * Set the MaxWalkSpeed of the movement component to the SprintSpeed
 	 */
-	void StartSprinting ();
+	void StartSprinting();
 
 
 	/**
@@ -145,6 +146,22 @@ protected:
 	 * Set the MaxWalkSpeed of the movement component to the WalkSpeed
 	 */
 	void StopSprinting();
+
+	// Interaction
+
+	/** The distance from the camera that an actor must be within in order to be interacted with */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interaction)
+	float InteractRange;
+
+	/** The radius of the sphere trace used to find interactable actors */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Interaction)
+	float InteractTolerance;
+	
+	/**
+	 * Called for interacting input
+	 * Line trace for an actor and attempt to pick up the actor if it is a holdable actor
+	 */
+	void Interact();
 
 	// Health
 
@@ -186,8 +203,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	/** 
-
 	// Input
 	
 	/** MappingContext */
@@ -213,5 +228,8 @@ private:
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
-	
+
+	/** Interact Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractAction;
 };
