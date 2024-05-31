@@ -13,6 +13,16 @@ UBTService_UpdatePlayerLocation::UBTService_UpdatePlayerLocation()
 	PlayerLocation.AddVectorFilter(this, PlayerLocation.SelectedKeyName);
 }
 
+void UBTService_UpdatePlayerLocation::InitializeFromAsset(UBehaviorTree& Asset)
+{
+	Super::InitializeFromAsset(Asset);
+
+	if (const UBlackboardData* BBAsset = GetBlackboardAsset(); ensure(BBAsset))
+	{
+		PlayerLocation.ResolveSelectedKey(*BBAsset);
+	}
+}
+
 void UBTService_UpdatePlayerLocation::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);

@@ -281,7 +281,7 @@ void APlayerCharacter::Interact()
 		
 		TArray<FHitResult> HitResults;
 		UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), Start, End, InteractTolerance,
-				TraceObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::ForDuration, HitResults, true);
+				TraceObjectTypes, false, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 		
 		// Get all HolderComponents and Holdables in the sphere trace
 		TArray<UHolderComponent*> OtherHolderComponents;

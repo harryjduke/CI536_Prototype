@@ -3,20 +3,8 @@
 #include "HolderComponent.h"
 
 // Sets default values for this component's properties
-UHolderComponent::UHolderComponent()
+UHolderComponent::UHolderComponent(): bFilterAllowedHoldables(false), bCanTransfer(false), HeldHoldable(nullptr)
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	HeldHoldable = nullptr;
-	if(const USceneComponent* ChildComponent = GetChildComponent(0))
-	{
-		if(AHoldable* ChildHoldable = Cast<AHoldable>(ChildComponent->GetAttachParentActor()))
-		{
-			HeldHoldable = ChildHoldable;
-		}
-	}
 }
 
 bool UHolderComponent::HoldHoldable(AHoldable* Holdable)
@@ -30,6 +18,7 @@ bool UHolderComponent::HoldHoldable(AHoldable* Holdable)
 		if(Holdable->Hold(this))
 		{
 			HeldHoldable = Holdable;
+			OnHeldHoldableChanged.Broadcast(HeldHoldable);
 			return true;
 		}
 	}
@@ -42,6 +31,7 @@ void UHolderComponent::DropHeldHoldable()
 	{
 		HeldHoldable->Drop();
         HeldHoldable = nullptr;
+		OnHeldHoldableChanged.Broadcast(nullptr);
 	}
 }
 
@@ -60,7 +50,9 @@ bool UHolderComponent::TransferHeldHoldable(UHolderComponent* ReceivingHolderCom
 		{
 			HeldHoldable->Transfer(ReceivingHolderComponent);
 			ReceivingHolderComponent->HeldHoldable = HeldHoldable;
+			ReceivingHolderComponent->OnHeldHoldableChanged.Broadcast(ReceivingHolderComponent->HeldHoldable);
 			HeldHoldable = nullptr;
+			OnHeldHoldableChanged.Broadcast(nullptr);
 			return true;
 		}
 	}

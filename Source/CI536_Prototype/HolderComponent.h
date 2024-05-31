@@ -7,6 +7,8 @@
 #include "Components/SceneComponent.h"
 #include "HolderComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHeldHoldableChanged, AHoldable*, NewHoldable);
+
 /** A component that can hold and drop an AHoldable actor as well as transferring it between UHolderComponents */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CI536_PROTOTYPE_API UHolderComponent : public USceneComponent
@@ -70,6 +72,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	bool TransferHeldHoldable(UHolderComponent* ReceivingHolderComponent, bool bForceGiveTransfer = false, bool bForceReceiveTransfer = false);
+
+	/**
+	 * A delegate called whe the held holdable changes, used so inheriting blueprints can perform actions when a
+	 * holdable is held.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = Holder)
+	FHeldHoldableChanged OnHeldHoldableChanged;
 	
 private:
 

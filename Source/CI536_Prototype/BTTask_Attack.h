@@ -21,6 +21,6 @@ public:
 
 private:
 	/** The amount of damage to deal */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	float Damage = 10;
 };
